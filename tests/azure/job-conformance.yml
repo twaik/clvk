@@ -1,0 +1,63 @@
+parameters:
+  - name: vmImage
+    type: string
+  - name: os
+    type: string
+  - name: CTSRepo
+    type: string
+  - name: CTSBranch
+    type: string
+  - name: buildType
+    type: string
+    default: Release
+    values:
+    - Release
+    - Debug
+    
+jobs:
+- job: ${{ parameters.os }}
+  pool:
+    vmImage: ${{ parameters.vmImage }}
+  steps:
+  - script: git submodule update --init
+    displayName: Update submodules
+  - script: git clone https://github.com/KhronosGroup/OpenCL-ICD-Loader.git
+    displayName: 'Fetch OpenCL ICD Loader'
+  - bash: |
+      set -ex
+      cd OpenCL-ICD-Loader
+      mkdir build
+      cd build
+      cmake -DCMAKE_BUILD_TYPE=Release -DOPENCL_ICD_LOADER_HEADERS_DIR="$(WORK)"/external/OpenCL-Headers/ ..
+      cmake --build . --config Release -j3
+    displayName: Build OpenCL ICD Loader
+  - script: git clone -b ${{ parameters.CTSBranch }} ${{ parameters.CTSRepo }}
+    displayName: Fetch OpenCL CTS Sources
+  - bash: |
+      set -ex
+      if [ ${{ parameters.os }} == osx ]; then
+        ln -s "$(WORK)"/external/OpenCL-Headers/CL "$(WORK)"/external/OpenCL-Headers/OpenCL
+      fi
+      cd OpenCL-CTS
+      mkdir build
+      cd build
+      if [ -d "$(WORK)"/OpenCL-ICD-Loader/build/Release ]; then
+        cp "$(WORK)"/OpenCL-ICD-Loader/build/Release/OpenCL.dll "$(WORK)"/OpenCL-ICD-Loader/build/
+      fi
+      if [ ${{ parameters.os }} == windows ]; then
+        CTS_LIBS="OpenCL"
+      else
+        CTS_LIBS="-lOpenCL -lpthread"
+      fi
+      cmake -DCMAKE_BUILD_TYPE=Release \
+            -DCL_INCLUDE_DIR="$(WORK)"/external/OpenCL-Headers \
+            -DCL_LIB_DIR="$(WORK)"/OpenCL-ICD-Loader/build \
+            -DCL_LIBCLCXX_DIR=dummy \
+            -DCMAKE_RUNTIME_OUTPUT_DIRECTORY="$(WORK)"/OpenCL-CTS/build/bin \
+            -DOPENCL_LIBRARIES="${CTS_LIBS}" \
+            -DUSE_CL_EXPERIMENTAL=ON \
+            ..
+      cmake --build . --config Release -j3
+    displayName: Build OpenCL CTS
+  - publish: $(WORK)/OpenCL-CTS/build/bin
+    artifact: conformance-$(Agent.OS)
