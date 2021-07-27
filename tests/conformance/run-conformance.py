@@ -144,7 +144,9 @@ def run_conformance_binary(path, args, vulkan_loader_json_path):
     result_json = os.path.join(workdir, 'conf.json')
     os.environ['CL_CONFORMANCE_RESULTS_FILENAME'] = result_json
     if vulkan_loader_json_path:
+        print("Using ICD JSON: " + vulkan_loader_json_path)
         os.environ['VK_ICD_FILENAMES'] = vulkan_loader_json_path
+    print(path)
     p = subprocess.Popen(
         [path] + args,
         stdout=subprocess.PIPE, stderr=subprocess.PIPE,
