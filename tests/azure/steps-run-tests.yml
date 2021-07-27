@@ -21,7 +21,7 @@ steps:
       displayName: Simple test
     - script: |
         chmod +x $(Pipeline.Workspace)/conformance/conformance-$(Agent.OS)/test_*
-        ./tests/conformance/run-conformance.py \
+        LD_LIBRARY_PATH=$(Pipeline.Workspace)/build CLVK_LOG=3 ./tests/conformance/run-conformance.py \
           --test-set=quick \
           --reference-results=./tests/conformance/results-swiftshader.json \
           --vulkan-loader-json-path=${{ parameters.icd_json_unix }} \
