@@ -22,6 +22,7 @@ import json
 import os
 import re
 import subprocess
+import sys
 
 THIS_DIR = os.path.dirname(__file__)
 TOP_DIR = os.path.realpath(os.path.join(THIS_DIR, '..', '..'))
@@ -153,7 +154,7 @@ def run_conformance_binary(path, args, vulkan_loader_json_path):
     stdout = stdout.decode('utf-8')
     stderr = stderr.decode('utf-8')
     end = datetime.datetime.utcnow()
-    #print(stdout)
+    print(stdout)
     duration = end - start
 
     has_results = False
@@ -258,6 +259,8 @@ def check_reference(results, reference, args):
             print("\t{}".format(name))
             for msg in msgs:
                 print("\t\t{}".format(msg))
+            return False
+        return True
 
 def report(results, args):
     total = 0
@@ -316,10 +319,12 @@ def report(results, args):
     print(line)
     print("")
 
+    success = True
     if args.reference_results:
         with open(args.reference_results) as f:
             reference = json.load(f)
-        check_reference(results, reference, args)
+        success = check_reference(results, reference, args)
+    return success
 
 def main():
 
@@ -367,7 +372,8 @@ def main():
             json.dump(results, f, indent=2, sort_keys=True, separators=(',', ': '))
 
     # Process results
-    report(results, args)
+    if not report(results, args):
+        sys.exit(1)
 
 if __name__ == '__main__':
     main()
