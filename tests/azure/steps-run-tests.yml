@@ -12,11 +12,21 @@ parameters:
 steps:
   - download: swiftshader
     artifact: swiftshader-$(Agent.OS)
+  - download: conformance
+    artifact: conformance-$(Agent.OS)
   - ${{ if ne(parameters.os, 'windows') }}:
     - script: VK_ICD_FILENAMES=${{ parameters.icd_json_unix }} CLVK_LOG=3 ./build/simple_test_static
       displayName: Simple test (static)
     - script: VK_ICD_FILENAMES=${{ parameters.icd_json_unix }} CLVK_LOG=3 ./build/simple_test
       displayName: Simple test
+    - script: |
+        ./tests/conformance/run-conformance.py \
+          --test-set=quick \
+          --reference-results=./tests/conformance/results-swiftshader.json \
+          --vulkan-loader-json-path=${{ parameters.icd_json_unix }} \
+          --cts-install-dir=$(Pipeline.Workspace)/conformance/conformance-$(Agent.OS)"
+
+      displayName: CTS
     - script: VK_ICD_FILENAMES=${{ parameters.icd_json_unix }} CLVK_LOG=2 ./build/api_tests
       displayName: API tests
     - script: ./build/sha1_tests

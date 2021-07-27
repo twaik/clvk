@@ -25,7 +25,6 @@ import subprocess
 
 THIS_DIR = os.path.dirname(__file__)
 TOP_DIR = os.path.realpath(os.path.join(THIS_DIR, '..', '..'))
-CTS_BUILD_DIR = os.path.join(TOP_DIR, 'build', 'conformance')
 CTS_DIR = os.path.join(TOP_DIR, 'external', 'OpenCL-CTS')
 
 # ('Name', 'binary', 'arg0', 'arg1', ...)
@@ -37,12 +36,10 @@ TESTS_QUICK = (
     ('Compiler', 'compiler/test_compiler'),
     ('Contractions', 'contractions/test_contractions'),
     ('Device Partitioning', 'device_partition/test_device_partition'),
+    ('Device timer', 'device_timer/test_device_timer'),
     ('Events', 'events/test_events'),
     ('Geometric Functions', 'geometrics/test_geometrics'),
-    ('Half Ops', 'half/test_half'),
     ('Mem (Host Flags)', 'mem_host_flags/test_mem_host_flags'),
-    ('Multiple Device/Context', 'multiple_device_context/test_multiples'),
-    ('Printf', 'printf/test_printf'),
     ('Profiling', 'profiling/test_profiling'),
 )
 
@@ -70,10 +67,12 @@ TESTS_FOR_WIMPY = TESTS_QUICK + (
     ('Vectors', 'vectors/test_vectors'),
     ('C11 Atomics', 'c11_atomics/test_c11_atomics'),
     ('Device execution', 'device_execution/test_device_execution'),
-    ('Device timer', 'device_timer/test_device_timer'),
     ('Generic Address Space', 'generic_address_space/test_generic_address_space'),
+    ('Half Ops', 'half/test_half'),
+    ('Multiple Device/Context', 'multiple_device_context/test_multiples'),
     ('Non-uniform work-group', 'non_uniform_work_group/test_non_uniform_work_group'),
     ('Pipes', 'pipes/test_pipes'),
+    ('Printf', 'printf/test_printf'),
     ('SPIR', 'spir/test_spir'),
     ('SPIR-V', 'spirv_new/test_spirv_new', '--spirv-binaries-path', os.path.join(CTS_DIR, 'test_conformance', 'spirv_new', 'spirv_bin')),
     ('SVM', 'SVM/test_svm'),
@@ -135,7 +134,7 @@ def timedelta_to_string(duration):
     )
     return datetime.datetime.strftime(duration_as_date, TIME_SERIALISATION_FORMAT)
 
-def run_conformance_binary(path, args):
+def run_conformance_binary(path, args, vulkan_loader_json_path):
     start = datetime.datetime.utcnow()
     dirname = os.path.dirname(path)
     binary = os.path.basename(path)
@@ -143,6 +142,8 @@ def run_conformance_binary(path, args):
     workdir = os.path.dirname(path)
     result_json = os.path.join(workdir, 'conf.json')
     os.environ['CL_CONFORMANCE_RESULTS_FILENAME'] = result_json
+    if vulkan_loader_json_path:
+        os.environ['VK_ICD_FILENAMES'] = vulkan_loader_json_path
     p = subprocess.Popen(
         [path] + args,
         stdout=subprocess.PIPE, stderr=subprocess.PIPE,
@@ -190,16 +191,17 @@ def get_totals(suite_results):
     totals['total'] = totals['pass'] + totals['fail']
     return totals
 
-def run_tests(test_set):
+def run_tests(test_set, args):
 
     results = {}
 
     for test in test_set:
         name = test[0]
         binary = test[1]
-        args = test[2:]
+        testargs = test[2:]
         print("Running", name, "...")
-        status = run_conformance_binary(os.path.join(CTS_BUILD_DIR, os.path.basename(binary)), list(args))
+        abspath = os.path.join(args.cts_install_dir, os.path.basename(binary))
+        status = run_conformance_binary(abspath, list(testargs), args.vulkan_loader_json_path)
         results[name] = status
         totals = get_totals(status)
         print("Done, retcode = %d [%s]." % (status['retcode'], status['duration']))
@@ -344,10 +346,22 @@ def main():
         help="Compare tests' execution time with reference values",
     )
 
+    parser.add_argument(
+        '--vulkan-loader-json-path', default=None,
+        help='Path to Vulkan Loader ICD JSON',
+    )
+
+
+    parser.add_argument(
+        '--cts-install-dir',
+        default=os.path.join(TOP_DIR, 'build', 'conformance'),
+        help='Path to installed CTS',
+    )
+
     args = parser.parse_args()
 
     # Run tests
-    results = run_tests(TEST_SETS[args.test_set])
+    results = run_tests(TEST_SETS[args.test_set], args)
     if args.save_results:
         with open(args.save_results, 'w') as f:
             json.dump(results, f, indent=2, sort_keys=True, separators=(',', ': '))
