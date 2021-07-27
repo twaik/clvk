@@ -135,7 +135,7 @@ def timedelta_to_string(duration):
     )
     return datetime.datetime.strftime(duration_as_date, TIME_SERIALISATION_FORMAT)
 
-def run_conformance_binary(path, args, vulkan_loader_json_path):
+def run_conformance_binary(path, testargs, args):
     start = datetime.datetime.utcnow()
     dirname = os.path.dirname(path)
     binary = os.path.basename(path)
@@ -143,14 +143,16 @@ def run_conformance_binary(path, args, vulkan_loader_json_path):
     workdir = os.path.dirname(path)
     result_json = os.path.join(workdir, 'conf.json')
     os.environ['CL_CONFORMANCE_RESULTS_FILENAME'] = result_json
-    if vulkan_loader_json_path:
-        print("Using ICD JSON: " + vulkan_loader_json_path)
-        os.environ['VK_ICD_FILENAMES'] = vulkan_loader_json_path
+    if args.vulkan_loader_json_path:
+        print("Using ICD JSON: " + args.vulkan_loader_json_path)
+        os.environ['VK_ICD_FILENAMES'] = args.vulkan_loader_json_path
     print(path)
     os.environ['VK_LOADER_DEBUG'] = 'all'
-    print(os.environ)
+    import pprint
+    pprint.pprint(os.environ)
+    os.environ['LD_LIBRARY_PATH'] = args.opencl_lib_dir
     p = subprocess.Popen(
-        [path] + args,
+        [path] + testargs,
         stdout=subprocess.PIPE, stderr=subprocess.PIPE,
         cwd=workdir
     )
@@ -158,6 +160,7 @@ def run_conformance_binary(path, args, vulkan_loader_json_path):
     stdout = stdout.decode('utf-8')
     stderr = stderr.decode('utf-8')
     end = datetime.datetime.utcnow()
+    print(stderr)
     print(stdout)
     duration = end - start
 
@@ -206,7 +209,7 @@ def run_tests(test_set, args):
         testargs = test[2:]
         print("Running", name, "...")
         abspath = os.path.join(args.cts_install_dir, os.path.basename(binary))
-        status = run_conformance_binary(abspath, list(testargs), args.vulkan_loader_json_path)
+        status = run_conformance_binary(abspath, list(testargs), args)
         results[name] = status
         totals = get_totals(status)
         print("Done, retcode = %d [%s]." % (status['retcode'], status['duration']))
@@ -360,11 +363,16 @@ def main():
         help='Path to Vulkan Loader ICD JSON',
     )
 
-
     parser.add_argument(
         '--cts-install-dir',
         default=os.path.join(TOP_DIR, 'build', 'conformance'),
         help='Path to installed CTS',
+    )
+    
+    parser.add_argument(
+        '--opencl-lib-dir',
+        default=os.path.join(TOP_DIR, 'build'),
+        help='Path to OpenCL library',
     )
 
     args = parser.parse_args()
