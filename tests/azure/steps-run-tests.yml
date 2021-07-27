@@ -20,6 +20,7 @@ steps:
     - script: VK_ICD_FILENAMES=${{ parameters.icd_json_unix }} CLVK_LOG=3 ./build/simple_test
       displayName: Simple test
     - script: |
+        chmod +x $(Pipeline.Workspace)/conformance/conformance-$(Agent.OS)/test_*
         ./tests/conformance/run-conformance.py \
           --test-set=quick \
           --reference-results=./tests/conformance/results-swiftshader.json \
