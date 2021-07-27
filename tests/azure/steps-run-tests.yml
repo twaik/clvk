@@ -24,7 +24,7 @@ steps:
           --test-set=quick \
           --reference-results=./tests/conformance/results-swiftshader.json \
           --vulkan-loader-json-path=${{ parameters.icd_json_unix }} \
-          --cts-install-dir=$(Pipeline.Workspace)/conformance/conformance-$(Agent.OS)"
+          --cts-install-dir=$(Pipeline.Workspace)/conformance/conformance-$(Agent.OS)
 
       displayName: CTS
     - script: VK_ICD_FILENAMES=${{ parameters.icd_json_unix }} CLVK_LOG=2 ./build/api_tests
