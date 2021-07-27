@@ -17,7 +17,7 @@ resources:
     branch: master
   - pipeline: conformance
     source: clvk.conformance
-    branch: master
+    branch: azure-conf
 
 stages:
 - stage: Code_Formatting
