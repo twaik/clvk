@@ -20,8 +20,12 @@ steps:
     - script: VK_ICD_FILENAMES=${{ parameters.icd_json_unix }} CLVK_LOG=3 ./build/simple_test
       displayName: Simple test
     - script: |
+        set -x
         chmod +x $(Pipeline.Workspace)/conformance/conformance-$(Agent.OS)/test_*
-        LD_LIBRARY_PATH=$(Pipeline.Workspace)/build CLVK_LOG=3 ./tests/conformance/run-conformance.py \
+        export LD_LIBRARY_PATH=$(Pipeline.Workspace)/build
+        export CLVK_LOG=3
+        echo "LD_LIBRARY_PATH: $LD_LIBRARY_PATH"
+        ./tests/conformance/run-conformance.py \
           --test-set=quick \
           --reference-results=./tests/conformance/results-swiftshader.json \
           --vulkan-loader-json-path=${{ parameters.icd_json_unix }} \
