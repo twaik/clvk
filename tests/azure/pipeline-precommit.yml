@@ -15,6 +15,9 @@ resources:
   - pipeline: swiftshader
     source: clvk.swiftshader
     branch: master
+  - pipeline: conformance
+    source: clvk.conformance
+    branch: master
 
 stages:
 - stage: Code_Formatting
