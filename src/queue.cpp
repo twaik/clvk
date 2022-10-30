@@ -1801,7 +1801,11 @@ cvk_command_image_init::build_batchable_inner(cvk_command_buffer& cmdbuf) {
         VkExtent3D extent;
 
         extent.width = m_image->width();
-        extent.height = m_image->height();
+        if (m_image->type() == CL_MEM_OBJECT_IMAGE1D) {
+            extent.height = 1;
+        } else {
+            extent.height = m_image->height();
+        }
         extent.depth = 1 /*m_image->depth()*/;
 
         VkBufferImageCopy copy = {
