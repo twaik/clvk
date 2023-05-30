@@ -36,6 +36,11 @@ if (CLVK_ENABLE_ASSERTIONS)
   endif()
 endif()
 
+if (CLVK_ENABLE_TSAN)
+  add_compile_options(-fsanitize=thread)
+  add_link_options(-fsanitize=thread)
+endif()
+
 # Options
 option(CLVK_CLSPV_ONLINE_COMPILER "Use the Clspv C++ API for compilation of kernels")
 if (CLVK_CLSPV_ONLINE_COMPILER)
